@@ -6,6 +6,7 @@ pub mod elf;
 #[derive(Default)]
 pub struct File {
     r_path      : String,
+    full_path   : Option<String>,
     r_stat      : Option<stat>,
     stat_is_set : bool
 }

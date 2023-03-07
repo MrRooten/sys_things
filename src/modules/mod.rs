@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::utils::STError;
 
-use self::{process::{CheckModifiedSectionV1, TestInjectCode, ProcessStrings}, privilege::CheckSystemVulns};
+use self::{process::{CheckModifiedSectionV1, TestInjectCode, ProcessStrings, ProcessRefFiles}, privilege::CheckSystemVulns};
 
 
 
@@ -31,4 +31,5 @@ pub fn load_modules(vs: &mut Vec<Box<dyn STModule>>) {
     vs.push(Box::new(TestInjectCode{}));
     vs.push(Box::new(ProcessStrings{}));
     vs.push(Box::new(CheckSystemVulns{}));
+    vs.push(Box::new(ProcessRefFiles{}));
 }

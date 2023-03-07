@@ -54,19 +54,6 @@ impl STModule for CheckModifiedSectionV1 {
         for proc in procs {
             let pid_s = proc.get_pid().to_string().green();
 
-            let cmdline = i_to_m(&proc).get_cmdline();
-
-            if cmdline.len() == 0 {
-                println!("Skipping kernel thread [{}]", proc.get_name().trim().blue());
-                continue;
-            }
-
-            println!(
-                "Checking process:{} {}",
-                pid_s,
-                i_to_m(&proc).get_cmdline().blue()
-            );
-
             let mmaps = proc.get_mmaps();
             let mmaps = match mmaps {
                 Ok(s) => s,
@@ -100,6 +87,21 @@ impl STModule for CheckModifiedSectionV1 {
                 .unwrap()
                 .with_key("eta", |state: &ProgressState, w: &mut dyn Write| write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
                 .progress_chars("#>-"));
+
+            let cmdline = i_to_m(&proc).get_cmdline();
+
+            if cmdline.len() == 0 {
+                let p = format!("Skipping kernel thread [{}]", proc.get_name().trim().blue());
+                pb.println(p);
+                continue;
+            }
+
+            let p = format!(
+                "Checking process:{} {}",
+                pid_s,
+                i_to_m(&proc).get_cmdline().bright_red()
+            );
+            pb.println(p);
             let mut i = 0;
             let mm_maps_len = mm_map.len();
             for filepath in mm_map.keys() {
@@ -154,8 +156,9 @@ impl STModule for CheckModifiedSectionV1 {
                     };
 
                     if memory_data.len() != image_data.len() && memory_data.len() != 0 {
-                        println!("[{}]:There is a modified only read execution segment\n\tpid:{}\n\tmap:{}\n\tsegment:{}\n\taddress:{:#02x}", 
+                        let p = format!("[{}]:There is a modified only read execution segment\n\tpid:{}\n\tmap:{}\n\tsegment:{}\n\taddress:{:#02x}", 
                         "vuln".red(),pid_s,filepath,seg.shdr.name,mem_base+seg.shdr.addr);
+                        pb.println(p);
                         break;
                     }
                     let mut hasher1 = Sha256::new();
@@ -165,8 +168,9 @@ impl STModule for CheckModifiedSectionV1 {
                     let result1 = hasher1.finalize();
                     let result2 = hasher2.finalize();
                     if !result1.eq(&result2) {
-                        println!("[{}]:There is a modified only set read execution segment\n\tpid:{}\n\tmap:{}\n\tsegment:{}\n\taddress:{:#02x}", 
+                        let p = format!("[{}]:There is a modified only set read execution segment\n\tpid:{}\n\tmap:{}\n\tsegment:{}\n\taddress:{:#02x}", 
                         "vuln".red(),pid_s,filepath,seg.shdr.name,mem_base+seg.shdr.addr);
+                        pb.println(p);
                     }
                 }
             }
@@ -362,11 +366,10 @@ impl STModule for ProcessStrings {
     }
 }
 
-
 pub struct ProcessFindBytes {}
 
 impl STModule for ProcessFindBytes {
-    fn run(&self, args: &STArgs) -> Result<STResult,STError> {
+    fn run(&self, args: &STArgs) -> Result<STResult, STError> {
         if args.contains_key("pid") == false {
             return Err(STError::new("ProcessFindBytes must has pid"));
         }
@@ -381,7 +384,9 @@ impl STModule for ProcessFindBytes {
         };
 
         if args.contains_key("target") == false {
-            return Err(STError::new("ProcessFindBytes must has target encode by base64"));
+            return Err(STError::new(
+                "ProcessFindBytes must has target encode by base64",
+            ));
         }
 
         let target = args.get("target").unwrap();
@@ -419,7 +424,6 @@ impl STModule for ProcessFindBytes {
                     }
                 };
                 let bs = Bytes::from(bs);
-                
             }
         }
         return Ok(STResult {});
@@ -435,5 +439,74 @@ impl STModule for ProcessFindBytes {
 
     fn get_detail(&self) -> String {
         todo!()
+    }
+}
+
+pub struct ProcessRefFiles {}
+
+impl ProcessRefFiles {
+    pub fn new() -> Self {
+        ProcessRefFiles {  }
+    }
+}
+
+impl STModule for ProcessRefFiles {
+    fn run(&self, args: &STArgs) -> Result<STResult,STError> {
+        if args.contains_key("pid") == false && args.contains_key("name") == false {
+            return Err(STError::new(
+                "CheckModifySegments module must set pid or process name",
+            ));
+        }
+
+        let mut procs = vec![];
+        if args.contains_key("pid") {
+            let pid = args.get("pid").unwrap().parse::<u32>();
+            let pid = match pid {
+                Ok(_pid) => _pid,
+                Err(err) => {
+                    return Err(STError::from(Box::new(err)));
+                }
+            };
+
+            procs.push(Process::new(pid));
+        }
+
+        if args.contains_key("name") {
+            let name = args.get("name").unwrap();
+            if name.eq("*") {
+                procs.append(&mut Process::list_process_in_proc());
+            } else {
+                procs.append(&mut Process::find_processes(name.to_string()));
+            }
+        }
+
+        for proc in procs {
+            let files = match proc.get_open_files() {
+                Ok(o) => o,
+                Err(e) => {
+                    continue;
+                }
+            };
+            println!("{}:{}", proc.get_pid().to_string().green(), i_to_m(&proc).get_cmdline().bright_blue());
+            for file in files {
+                
+                println!("\t{}", file.get_filepath());
+            }
+        }
+        return Ok(STResult {});
+    }
+
+    fn helper(&self) -> String {
+        let result = "ProcessRefFiles pid=${pid}\n
+        ProcessRefFiles name=${proc_name}\n";
+        result.to_string()
+    }
+
+    fn get_name(&self) -> String {
+        "ProcessRefFiles".to_string()
+    }
+
+    fn get_detail(&self) -> String {
+        "".to_string()
     }
 }

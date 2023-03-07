@@ -135,7 +135,15 @@ impl File {
 
     }
 
-    pub fn get_filepath(&self) {
+    pub fn get_filepath(&self) -> String {
+        match fs::canonicalize(&self.r_path) {
+            Ok(o) => {
+                return o.to_string_lossy().to_string();
+            },
+            Err(e) => {
+                return format!("[deleted]{}", self.r_path);
+            }
+        }
     }
 
     pub fn get_inode(&self) -> u64{

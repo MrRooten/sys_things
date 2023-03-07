@@ -8,7 +8,7 @@ use sys_things::{process_info::Process, file_info::elf::ELFParser, modules::{pro
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
-    if args.len() < 3 {
+    if args.len() < 2 {
         println!("{} help",args[0]);
         println!("{} run {} {}",args[0],"${ModuleName}","key=value...");
         println!("{} list",args[0]);
