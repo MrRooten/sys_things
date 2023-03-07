@@ -4,7 +4,7 @@ use std::{env, collections::HashMap, vec};
 use sys_things::modules::load_modules;
 use sys_things::modules::privilege::CheckSystemVulns;
 use sys_things::modules::process::ProcessStrings;
-use sys_things::{process_info::Process, file_info::elf::ELFParser, modules::{process::{CheckModifiedSectionV1, TestInjectCode}, STModule, STArgs}};
+use sys_things::{process_info::Process, file_info::elf::ELFParser, modules::{process::{CheckModifiedSectionV1}, STModule, STArgs}};
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();

